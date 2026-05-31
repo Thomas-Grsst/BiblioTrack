@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BiblioTrack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── VARIABLES & RESET ─────────────────────────────────────── */
+      :root {
+        --bg: #0f0e17;
+        --surface: #1a1928;
+        --surface2: #22213a;
+        --border: rgba(255, 255, 255, 0.07);
+        --text: #fffffe;
+        --text-muted: #a7a9be;
+        --accent: #e8c547;
+
+        --termine: #4ade80;
+        --en-cours: #60a5fa;
+        --pas-commence: #c084fc;
+        --futur: #fb923c;
+
+        --termine-bg: rgba(74, 222, 128, 0.1);
+        --en-cours-bg: rgba(96, 165, 250, 0.1);
+        --pas-commence-bg: rgba(192, 132, 252, 0.1);
+        --futur-bg: rgba(251, 146, 60, 0.1);
+
+        --radius: 12px;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      /* ── TITLEBAR ──────────────────────────────────────────────── */
+      #titlebar {
+        -webkit-app-region: drag;
+        height: 42px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        flex-shrink: 0;
+      }
+
+      #titlebar .app-name {
+        font-family: "Playfair Display", serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+      }
+
+      #titlebar .controls {
+        -webkit-app-region: no-drag;
+        display: flex;
+        gap: 8px;
+      }
+
+      #titlebar .controls button {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      #titlebar .controls button:hover {
+        opacity: 0.8;
+      }
+      #btn-fermer {
+        background: #ff5f57;
+      }
+      #btn-minimiser {
+        background: #febc2e;
+      }
+      #btn-maximiser {
+        background: #28c840;
+      }
+
+      /* ── LAYOUT ────────────────────────────────────────────────── */
+      #app {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ── SIDEBAR ───────────────────────────────────────────────── */
+      #sidebar {
+        width: 220px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        padding: 24px 0;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+      }
+
+      .sidebar-title {
+        font-family: "Playfair Display", serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 0 20px 16px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 20px;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 400;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+        position: relative;
+      }
+
+      .nav-item:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .nav-item.active {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .nav-item.active.cat-termine {
+        border-left-color: var(--termine);
+        color: var(--termine);
+      }
+      .nav-item.active.cat-en-cours {
+        border-left-color: var(--en-cours);
+        color: var(--en-cours);
+      }
+      .nav-item.active.cat-pas-commence {
+        border-left-color: var(--pas-commence);
+        color: var(--pas-commence);
+      }
+      .nav-item.active.cat-futur {
+        border-left-color: var(--futur);
+        color: var(--futur);
+      }
+      .nav-item.active.cat-tous {
+        border-left-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .nav-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .dot-tous {
+        background: var(--accent);
+      }
+      .dot-termine {
+        background: var(--termine);
+      }
+      .dot-en-cours {
+        background: var(--en-cours);
+      }
+      .dot-pas-commence {
+        background: var(--pas-commence);
+      }
+      .dot-futur {
+        background: var(--futur);
+      }
+
+      .nav-badge {
+        margin-left: auto;
+        background: var(--surface2);
+        color: var(--text-muted);
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        min-width: 22px;
+        text-align: center;
+      }
+
+      #sidebar-footer {
+        margin-top: auto;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      #btn-ajouter {
+        width: 100%;
+        padding: 11px;
+        background: var(--accent);
+        color: #0f0e17;
+        border: none;
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.01em;
+      }
+
+      #btn-ajouter:hover {
+        background: #f0d060;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(232, 197, 71, 0.3);
+      }
+
+      /* ── MAIN CONTENT ──────────────────────────────────────────── */
+      #main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+      }
+
+      #main::-webkit-scrollbar {
+        width: 6px;
+      }
+      #main::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #main::-webkit-scrollbar-thumb {
+        background: var(--surface2);
+        border-radius: 3px;
+      }
+
+      #header-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+
+      #titre-categorie {
+        font-family: "Playfair Display", serif;
+        font-size: 28px;
+        font-weight: 900;
+      }
+
+      #recherche {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 9px 16px;
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        width: 220px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      #recherche::placeholder {
+        color: var(--text-muted);
+      }
+      #recherche:focus {
+        border-color: var(--accent);
+      }
+
+      /* ── GRILLE DE LIVRES ──────────────────────────────────────── */
+      #grille-livres {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+      }
+
+      .carte-livre {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.25s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .carte-livre::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+
+      .carte-livre.cat-termine::before {
+        background: var(--termine);
+      }
+      .carte-livre.cat-en-cours::before {
+        background: var(--en-cours);
+      }
+      .carte-livre.cat-pas-commence::before {
+        background: var(--pas-commence);
+      }
+      .carte-livre.cat-futur::before {
+        background: var(--futur);
+      }
+
+      .carte-livre:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+
+      .carte-categorie {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+      }
+
+      .cat-termine .carte-categorie {
+        color: var(--termine);
+        background: var(--termine-bg);
+      }
+      .cat-en-cours .carte-categorie {
+        color: var(--en-cours);
+        background: var(--en-cours-bg);
+      }
+      .cat-pas-commence .carte-categorie {
+        color: var(--pas-commence);
+        background: var(--pas-commence-bg);
+      }
+      .cat-futur .carte-categorie {
+        color: var(--futur);
+        background: var(--futur-bg);
+      }
+
+      .carte-titre {
+        font-family: "Playfair Display", serif;
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        line-height: 1.3;
+      }
+
+      .carte-auteur {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .carte-desc {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .carte-meta {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .carte-note {
+        font-family: "Playfair Display", serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .vide {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-muted);
+      }
+
+      .vide-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      .vide h3 {
+        font-family: "Playfair Display", serif;
+        font-size: 20px;
+        margin-bottom: 8px;
+        color: var(--text);
+      }
+      .vide p {
+        font-size: 14px;
+      }
+
+      /* ── MODAL ─────────────────────────────────────────────────── */
+      #overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #overlay.visible {
+        display: flex;
+      }
+
+      #modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 520px;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 32px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+        animation: slideIn 0.25s ease;
+      }
+
+      #modal::-webkit-scrollbar {
+        width: 4px;
+      }
+      #modal::-webkit-scrollbar-thumb {
+        background: var(--surface2);
+        border-radius: 2px;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(16px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      #modal h2 {
+        font-family: "Playfair Display", serif;
+        font-size: 22px;
+        font-weight: 900;
+        margin-bottom: 24px;
+      }
+
+      .champ {
+        margin-bottom: 18px;
+      }
+
+      .champ label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 7px;
+      }
+
+      .champ input,
+      .champ textarea,
+      .champ select {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .champ input:focus,
+      .champ textarea:focus,
+      .champ select:focus {
+        border-color: var(--accent);
+      }
+
+      .champ textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .champ select option {
+        background: var(--surface);
+      }
+
+      /* Grille de catégories */
+      .cat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .cat-option {
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .cat-option:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .cat-option.selected-termine {
+        border-color: var(--termine);
+        background: var(--termine-bg);
+        color: var(--termine);
+      }
+      .cat-option.selected-en-cours {
+        border-color: var(--en-cours);
+        background: var(--en-cours-bg);
+        color: var(--en-cours);
+      }
+      .cat-option.selected-pas-commence {
+        border-color: var(--pas-commence);
+        background: var(--pas-commence-bg);
+        color: var(--pas-commence);
+      }
+      .cat-option.selected-futur {
+        border-color: var(--futur);
+        background: var(--futur-bg);
+        color: var(--futur);
+      }
+
+      /* Champs dynamiques */
+      #champs-dynamiques {
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+        padding-top: 18px;
+      }
+
+      #champs-dynamiques h4 {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 14px;
+      }
+
+      .ligne-deux {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      /* Boutons modal */
+      .modal-footer {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .btn-annuler {
+        flex: 1;
+        padding: 11px;
+        background: var(--surface2);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-annuler:hover {
+        color: var(--text);
+      }
+
+      .btn-valider {
+        flex: 2;
+        padding: 11px;
+        background: var(--accent);
+        color: #0f0e17;
+        border: none;
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-valider:hover {
+        background: #f0d060;
+      }
+
+      /* ── PANEL DÉTAIL ──────────────────────────────────────────── */
+      #panel-detail {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #panel-detail.visible {
+        display: flex;
+      }
+
+      #detail-content {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 540px;
+        max-height: 85vh;
+        overflow-y: auto;
+        animation: slideIn 0.25s ease;
+      }
+
+      #detail-content::-webkit-scrollbar {
+        width: 4px;
+      }
+      #detail-content::-webkit-scrollbar-thumb {
+        background: var(--surface2);
+        border-radius: 2px;
+      }
+
+      .detail-header {
+        padding: 28px 28px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .detail-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 20px;
+        margin-bottom: 14px;
+      }
+
+      .detail-titre {
+        font-family: "Playfair Display", serif;
+        font-size: 24px;
+        font-weight: 900;
+        margin-bottom: 6px;
+        line-height: 1.2;
+      }
+
+      .detail-auteur {
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+
+      .detail-body {
+        padding: 24px 28px;
+      }
+
+      .detail-section-title {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .detail-desc {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.7;
+        margin-bottom: 24px;
+      }
+
+      .detail-infos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .detail-info-item {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+      }
+
+      .detail-info-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+      }
+      .detail-info-val {
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .detail-info-val.note {
+        font-family: "Playfair Display", serif;
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--accent);
+      }
+
+      .detail-actions {
+        display: flex;
+        gap: 10px;
+        padding: 0 28px 28px;
+        flex-wrap: wrap;
+      }
+
+      .btn-changer {
+        flex: 1;
+        padding: 10px 14px;
+        background: var(--surface2);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-changer:hover {
+        color: var(--text);
+      }
+
+      .btn-modifier {
+        flex: 1;
+        padding: 10px 14px;
+        background: rgba(232, 197, 71, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(232, 197, 71, 0.3);
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-modifier:hover {
+        background: rgba(232, 197, 71, 0.25);
+      }
+
+      .btn-supprimer {
+        padding: 10px 14px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-supprimer:hover {
+        background: rgba(239, 68, 68, 0.2);
+      }
+
+      .erreur {
+        color: #ef4444;
+        font-size: 12px;
+        margin-top: 6px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── BARRE DE TITRE ─────────────────────────────────────────── -->
+    <div id="titlebar">
+      <span class="app-name">📚 BiblioTrack</span>
+      <div class="controls">
+        <button id="btn-minimiser" title="Minimiser"></button>
+        <button id="btn-maximiser" title="Maximiser"></button>
+        <button id="btn-fermer" title="Fermer"></button>
+      </div>
+    </div>
+
+    <!-- ── APP ───────────────────────────────────────────────────── -->
+    <div id="app">
+      <!-- SIDEBAR -->
+      <nav id="sidebar">
+        <div class="sidebar-title">Ma Bibliothèque</div>
+
+        <div class="nav-item active cat-tous" data-cat="tous">
+          <span class="nav-dot dot-tous"></span>
+          Tous les livres
+          <span class="nav-badge" id="badge-tous">0</span>
+        </div>
+        <div class="nav-item cat-termine" data-cat="termine">
+          <span class="nav-dot dot-termine"></span>
+          Terminé
+          <span class="nav-badge" id="badge-termine">0</span>
+        </div>
+        <div class="nav-item cat-en-cours" data-cat="en-cours">
+          <span class="nav-dot dot-en-cours"></span>
+          En cours
+          <span class="nav-badge" id="badge-en-cours">0</span>
+        </div>
+        <div class="nav-item cat-pas-commence" data-cat="pas-commence">
+          <span class="nav-dot dot-pas-commence"></span>
+          Pas commencé
+          <span class="nav-badge" id="badge-pas-commence">0</span>
+        </div>
+        <div class="nav-item cat-futur" data-cat="futur">
+          <span class="nav-dot dot-futur"></span>
+          Futur Achat
+          <span class="nav-badge" id="badge-futur">0</span>
+        </div>
+
+        <div id="sidebar-footer">
+          <button id="btn-ajouter">+ Ajouter un livre</button>
+        </div>
+      </nav>
+
+      <!-- CONTENU PRINCIPAL -->
+      <main id="main">
+        <div id="header-main">
+          <h1 id="titre-categorie">Tous les livres</h1>
+          <input type="text" id="recherche" placeholder="Rechercher..." />
+        </div>
+        <div id="grille-livres"></div>
+      </main>
+    </div>
+
+    <!----------------------------------------------------->
+    <!---------------Carte ajout/modification-------------->
+    <!----------------------------------------------------->
+    <div id="overlay">
+      <div id="modal">
+        <h2 id="modal-titre">Ajouter un livre</h2>
+
+        <div class="champ">
+          <label>Titre *</label>
+          <input
+            type="text"
+            id="f-titre"
+            placeholder="Ex: Le Seigneur des Anneaux"
+          />
+          <div class="erreur" id="err-titre">Le titre est obligatoire.</div>
+        </div>
+
+        <div class="champ">
+          <label>Auteur *</label>
+          <input type="text" id="f-auteur" placeholder="Ex: J.R.R. Tolkien" />
+          <div class="erreur" id="err-auteur">L'auteur est obligatoire.</div>
+        </div>
+
+        <div class="champ">
+          <label>Description *</label>
+          <textarea
+            id="f-description"
+            placeholder="Une courte description du livre..."
+          ></textarea>
+          <div class="erreur" id="err-desc">
+            La description est obligatoire.
+          </div>
+        </div>
+
+        <div class="champ">
+          <label>Catégorie *</label>
+          <div class="cat-grid">
+            <div class="cat-option" data-val="termine">✅ Terminé</div>
+            <div class="cat-option" data-val="en-cours">📖 En cours</div>
+            <div class="cat-option" data-val="pas-commence">
+              🔖 Pas commencé
+            </div>
+            <div class="cat-option" data-val="futur">🛒 Futur Achat</div>
+          </div>
+          <div class="erreur" id="err-cat">Choisissez une catégorie.</div>
+        </div>
+
+        <!----------------------------------------------------->
+        <!-----------------Champs supplémentaire--------------->
+        <!----------------------------------------------------->
+
+        <!-- Champs qui apparaissent selon la catégorie -->
+        <div id="champs-dynamiques" style="display: none">
+          <h4 id="champs-dyn-titre">Informations supplémentaires</h4>
+
+          <div id="bloc-date-debut" class="champ" style="display: none">
+            <label>Date de début *</label>
+            <input type="date" id="f-date-debut" />
+            <div class="erreur" id="err-date-debut">
+              La date de début est obligatoire.
+            </div>
+          </div>
+
+          <div id="bloc-date-fin" class="champ" style="display: none">
+            <label>Date de fin *</label>
+            <input type="date" id="f-date-fin" />
+            <div class="erreur" id="err-date-fin">
+              La date de fin est obligatoire.
+            </div>
+          </div>
+
+          <div id="bloc-note" class="champ" style="display: none">
+            <label>Note sur 20 *</label>
+            <input
+              type="number"
+              id="f-note"
+              min="0"
+              max="20"
+              step="0.5"
+              placeholder="Ex: 17"
+            />
+            <div class="erreur" id="err-note">
+              La note doit être entre 0 et 20.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-annuler" id="btn-modal-annuler">Annuler</button>
+          <button class="btn-valider" id="btn-modal-valider">
+            Ajouter le livre
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PANEL DÉTAIL ───────────────────────────────────────────── -->
+    <div id="panel-detail">
+      <div id="detail-content">
+        <div class="detail-header">
+          <div class="detail-badge" id="d-badge"></div>
+          <div class="detail-titre" id="d-titre"></div>
+          <div class="detail-auteur" id="d-auteur"></div>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-section-title">Description</div>
+          <div class="detail-desc" id="d-desc"></div>
+          <div class="detail-infos" id="d-infos"></div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="btn-changer" id="btn-detail-fermer">✕ Fermer</button>
+          <button class="btn-modifier" id="btn-detail-modifier">
+            ✏️ Modifier
+          </button>
+          <button class="btn-supprimer" id="btn-detail-supprimer">
+            🗑 Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
