@@ -437,6 +437,15 @@ function validerFormulaire() {
       document.getElementById("err-date-fin").style.display = "block";
       ok = false;
     }
+    // Vérification : date de début doit être avant la date de fin
+    const debut = document.getElementById("f-date-debut").value;
+    const fin = document.getElementById("f-date-fin").value;
+    if (debut && fin && debut >= fin) {
+      document.getElementById("err-date-fin").style.display = "block";
+      document.getElementById("err-date-fin").textContent =
+        "La date de fin doit être après la date de début.";
+      ok = false;
+    }
     const note = document.getElementById("f-note").value;
     if (note === "" || isNaN(note) || note < 0 || note > 20) {
       document.getElementById("err-note").style.display = "block";
