@@ -1,34 +1,32 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const fs = require("fs");
+const Database = require("better-sqlite3");
 
-// Chemin vers le fichier de données
-const dataPath = path.join(app.getPath("userData"), "livres.json");
+// ── Initialisation de la base SQLite ────────────────────────────
+// Le fichier bibliotrack.db sera créé automatiquement dans le dossier userData
+let db;
 
-// Charger les données depuis le fichier JSON
-function chargerDonnees() {
-  try {
-    if (fs.existsSync(dataPath)) {
-      const contenu = fs.readFileSync(dataPath, "utf-8");
-      return JSON.parse(contenu);
-    }
-  } catch (err) {
-    console.error("Erreur lecture données:", err);
-  }
-  return [];
+function initDB() {
+  const dbPath = path.join(app.getPath("userData"), "bibliotrack.db");
+  db = new Database(dbPath);
+
+  // Création de la table si elle n'existe pas encore
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS livres (
+      id            TEXT PRIMARY KEY,
+      titre         TEXT NOT NULL,
+      auteur        TEXT NOT NULL,
+      description   TEXT NOT NULL,
+      categorie     TEXT NOT NULL,
+      dateCreation  TEXT NOT NULL,
+      dateDebut     TEXT,
+      dateFin       TEXT,
+      note          REAL
+    )
+  `);
 }
 
-// Sauvegarder les données dans le fichier JSON
-function sauvegarderDonnees(livres) {
-  try {
-    fs.writeFileSync(dataPath, JSON.stringify(livres, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.error("Erreur sauvegarde données:", err);
-    return false;
-  }
-}
-
+// ── Fenêtre principale ───────────────────────────────────────────
 function creerFenetre() {
   const win = new BrowserWindow({
     width: 1200,
@@ -50,6 +48,7 @@ function creerFenetre() {
 }
 
 app.whenReady().then(() => {
+  initDB();
   creerFenetre();
 
   app.on("activate", () => {
@@ -58,48 +57,86 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  if (db) db.close(); // Fermer proprement la BDD avant de quitter
   if (process.platform !== "darwin") app.quit();
 });
 
-// ─── Gestionnaires IPC (communication fenêtre ↔ main) ───────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  GESTIONNAIRES IPC — communication fenêtre ↔ main
+// ═══════════════════════════════════════════════════════════════
 
+// Lire tous les livres
 ipcMain.handle("livres:lire", () => {
-  return chargerDonnees();
+  const stmt = db.prepare("SELECT * FROM livres ORDER BY dateCreation DESC");
+  return stmt.all();
+  // .all() retourne un tableau d'objets JavaScript, exactement comme avant avec le JSON
 });
 
+// Ajouter un livre
 ipcMain.handle("livres:ajouter", (event, livre) => {
-  const livres = chargerDonnees();
   livre.id = Date.now().toString();
   livre.dateCreation = new Date().toISOString();
-  livres.push(livre);
-  sauvegarderDonnees(livres);
-  return livres;
+
+  const stmt = db.prepare(`
+    INSERT INTO livres (id, titre, auteur, description, categorie, dateCreation, dateDebut, dateFin, note)
+    VALUES (@id, @titre, @auteur, @description, @categorie, @dateCreation, @dateDebut, @dateFin, @note)
+  `);
+
+  stmt.run({
+    id: livre.id,
+    titre: livre.titre,
+    auteur: livre.auteur,
+    description: livre.description,
+    categorie: livre.categorie,
+    dateCreation: livre.dateCreation,
+    dateDebut: livre.dateDebut ?? null,
+    dateFin: livre.dateFin ?? null,
+    note: livre.note ?? null,
+  });
+
+  // On retourne tous les livres (comme avant) pour que le renderer se mette à jour
+  return db.prepare("SELECT * FROM livres ORDER BY dateCreation DESC").all();
 });
 
-ipcMain.handle("livres:modifier", (event, livreModifie) => {
-  const livres = chargerDonnees();
-  const index = livres.findIndex((l) => l.id === livreModifie.id);
-  if (index !== -1) {
-    livres[index] = { ...livres[index], ...livreModifie };
-    sauvegarderDonnees(livres);
-  }
-  return livres;
+// Modifier un livre
+ipcMain.handle("livres:modifier", (event, livre) => {
+  const stmt = db.prepare(`
+    UPDATE livres
+    SET titre       = @titre,
+        auteur      = @auteur,
+        description = @description,
+        categorie   = @categorie,
+        dateDebut   = @dateDebut,
+        dateFin     = @dateFin,
+        note        = @note
+    WHERE id = @id
+  `);
+
+  stmt.run({
+    id: livre.id,
+    titre: livre.titre,
+    auteur: livre.auteur,
+    description: livre.description,
+    categorie: livre.categorie,
+    dateDebut: livre.dateDebut ?? null,
+    dateFin: livre.dateFin ?? null,
+    note: livre.note ?? null,
+  });
+
+  return db.prepare("SELECT * FROM livres ORDER BY dateCreation DESC").all();
 });
 
+// Supprimer un livre
 ipcMain.handle("livres:supprimer", (event, id) => {
-  let livres = chargerDonnees();
-  livres = livres.filter((l) => l.id !== id);
-  sauvegarderDonnees(livres);
-  return livres;
+  db.prepare("DELETE FROM livres WHERE id = ?").run(id);
+  return db.prepare("SELECT * FROM livres ORDER BY dateCreation DESC").all();
 });
 
-// Contrôles de fenêtre
-ipcMain.on("fenetre:fermer", () => {
-  BrowserWindow.getFocusedWindow()?.close();
-});
-ipcMain.on("fenetre:minimiser", () => {
-  BrowserWindow.getFocusedWindow()?.minimize();
-});
+// ── Contrôles de fenêtre ─────────────────────────────────────────
+ipcMain.on("fenetre:fermer", () => BrowserWindow.getFocusedWindow()?.close());
+ipcMain.on("fenetre:minimiser", () =>
+  BrowserWindow.getFocusedWindow()?.minimize(),
+);
 ipcMain.on("fenetre:maximiser", () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win?.isMaximized()) win.unmaximize();
